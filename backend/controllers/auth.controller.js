@@ -1,7 +1,7 @@
 import { User } from "../models/user.model.js";
 import bcrypt from "bcryptjs";
 import { generateTokenAndSetCookie } from "../utils/generateTokenAndSetCookies.js";
-import { sendVerificationEmail } from "../mailtrap/emails.js";
+import { sendVerificationEmail, sendWelcomeEmail } from "../mailtrap/emails.js";
 
 export const signup = async (req, res) => {
   const { email, password, name } = req.body;
@@ -48,6 +48,44 @@ export const signup = async (req, res) => {
     });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+// verifies the new account with the 6 digit email token
+export const verifyEmail = async (req, res) => {
+  const { code } = req.body;
+  try {
+    const user = await User.findOne({
+      verificationToken: code,
+      verificationTokenExpiresAt: { $gt: Date.now() }, // makes sure token not expired
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: "Verification code is invalid or expired",
+      });
+    }
+
+    // updates user db entry when verified, gets rid of verification token info
+    user.isVerified = true;
+    user.verificationToken = undefined;
+    user.verificationTokenExpiresAt = undefined;
+    await user.save(); // saves user changes in the db
+
+    await sendWelcomeEmail(user.email, user.name); // in emails.js
+
+    res.status(200).json({
+      success: true,
+      message: "Email verified",
+      user: {
+        ...user._doc,
+        password: undefined,
+      },
+    });
+  } catch (error) {
+    console.log("Error verifiying email ", error);
+    res.status(500).json({ success: false, message: "Error" });
   }
 };
 

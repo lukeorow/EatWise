@@ -7,7 +7,7 @@ const TOKEN = process.env.MAILTRAP_TOKEN;
 
 // config for the MailTrap email verification system
 
-export const mailTrapClient = new MailtrapClient({
+export const mailtrapClient = new MailtrapClient({
   token: TOKEN,
 });
 
