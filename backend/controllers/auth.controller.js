@@ -57,9 +57,10 @@ export const verifyEmail = async (req, res) => {
   try {
     const user = await User.findOne({
       verificationToken: code,
-      verificationTokenExpiresAt: { $gt: Date.now() }, // makes sure token not expired
+      verificationTokenExpiresAt: { $gt: Date.now() }, // makes sure token not expired yet
     });
 
+    // if user with non expired verification token wasn't found
     if (!user) {
       return res.status(400).json({
         success: false,
@@ -69,7 +70,7 @@ export const verifyEmail = async (req, res) => {
 
     // updates user db entry when verified, gets rid of verification token info
     user.isVerified = true;
-    user.verificationToken = undefined;
+    user.verificationToken = undefined; // deletes from the db
     user.verificationTokenExpiresAt = undefined;
     await user.save(); // saves user changes in the db
 
@@ -93,6 +94,8 @@ export const login = async (req, res) => {
   res.send("login route");
 };
 
+// clears the cookie to unauthenticate and log out the user
 export const logout = async (req, res) => {
-  res.send("logout route");
+  res.clearCookie("token");
+  res.status(200).json({ success: true, message: "Logout was successful" });
 };
