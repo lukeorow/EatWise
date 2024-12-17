@@ -1,5 +1,5 @@
 import { User } from "../models/user.model.js";
-import bcrypt from "bcryptjs";
+import bcryptjs from "bcryptjs";
 import { generateTokenAndSetCookie } from "../utils/generateTokenAndSetCookies.js";
 import { sendVerificationEmail, sendWelcomeEmail } from "../mailtrap/emails.js";
 
@@ -91,7 +91,37 @@ export const verifyEmail = async (req, res) => {
 };
 
 export const login = async (req, res) => {
-  res.send("login route");
+  const { email, password } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ success: false, message: "Invalid creds" });
+    }
+    const isPasswordValid = await bcryptjs.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Incorrect password" });
+    }
+
+    generateTokenAndSetCookie(res, user._id);
+
+    user.lastLogin = new Date(); // sets the last logged in date to now
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Login successful",
+      user: {
+        ...user._doc,
+        password: undefined, // doesn't display the pass
+      },
+    });
+  } catch (error) {
+    console.log("Error while logging in", error);
+    res.status(400).json({ success: false, message: error.message });
+  }
 };
 
 // clears the cookie to unauthenticate and log out the user
