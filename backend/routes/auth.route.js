@@ -6,9 +6,14 @@ import {
   verifyEmail,
   forgotPassword,
   resetPassword,
+  checkAuthentication,
 } from "../controllers/auth.controller.js";
+import { verifyToken } from "../middleware/verifyToken.js";
 
 const router = express.Router();
+
+// checks if a user is logged in/authenticated by verifying token
+router.get("/check-authentication", verifyToken, checkAuthentication);
 
 // this handles the different routing to different pages
 // localhost:3000/api/auth/{route} where route is signup, login, logout, etc and routes to that page
